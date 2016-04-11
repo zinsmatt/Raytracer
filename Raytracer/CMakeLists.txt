@@ -4,7 +4,10 @@ aux_source_directory(. SRC_LIST)
 
 find_package(SDL REQUIRED)
 
-add_executable(${PROJECT_NAME} ${SRC_LIST})
+set(HEADER raytracer.h)
+
+
+add_executable(${PROJECT_NAME} ${SRC_LIST} ${HEADER})
 
 target_link_libraries(${PROJECT_NAME} SDL ${SDL_LIBRARIES})
 
