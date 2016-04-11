@@ -34,9 +34,9 @@ void init()
 	tabSpheres[0].kd = 0.7;
 	nbSpheres++;
 
-	tabSources[0].Ia = {1.0,1.0,0.0};
-	tabSources[0].Ip = {1.0,1.0,0.0};
-	tabSources[0].pos = {0,5,-2};
+	tabSources[0].Ia = {0.05,0.05,0.0};
+	tabSources[0].Ip = {0.95,0.95,0};
+	tabSources[0].pos = {5,5,5};
 	nbSources++;
 }
 
@@ -130,7 +130,7 @@ bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
 			{
 				intersection = true;
 				tmin = t;
-				pt = {pt.x+dir.x*t,pt.y+dir.y*t,pt.z+dir.z*t};
+				pt = {start.x+dir.x*t,start.y+dir.y*t,start.z+dir.z*t};
 				Point center = {sphere->xc,sphere->yc,sphere->zc};
 				Vector normal = vectNormFromPoints(center,pt);
 				face.ka = sphere->ka;
@@ -152,7 +152,7 @@ bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
 				{
 					intersection = true;
 					tmin = t;
-					pt = {pt.x+dir.x*t,pt.y+dir.y*t,pt.z+dir.z*t};
+					pt = {start.x+dir.x*t,start.y+dir.y*t,start.z+dir.z*t};
 					Point center = {sphere->xc,sphere->yc,sphere->zc};
 					Vector normal = vectNormFromPoints(center,pt);
 					face.ka = sphere->ka;
@@ -189,12 +189,15 @@ void raytrace2(Point start, Vector dir, int nb, Intensity& it)
 			// diffuse with all the sources
 			for(int srcIter = 0; srcIter<nbSources; ++srcIter)
 			{
-				Vector Lj = vectNormFromPoints(pointI,tabSources[srcIter].pos);
+ 				Vector Lj = vectNormFromPoints(pointI,tabSources[srcIter].pos);
 				double fAtt = 1/dist(tabSources[srcIter].pos,pointI);
 				double coef = face.kd*prodScalPos(face.normal,Lj);
 				add(temp,mult(tabSources[srcIter].Ip,coef));
 			}
 			it = temp;
+			if(it.r>1.0) it.r = 1.0;
+			if(it.g>1.0) it.g = 1.0;
+			if(it.b>1.0) it.b = 1.0;
 		}
 	}
 }
