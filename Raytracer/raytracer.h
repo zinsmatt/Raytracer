@@ -58,7 +58,7 @@ struct Sphere{
 
 struct Face{	//represents an intersection between an object and a ray
 	Vector normal;
-	Material mat;
+	Sphere* sphere;
 };
 
 struct Source{
