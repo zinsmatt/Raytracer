@@ -30,8 +30,16 @@ void init()
 	tabSpheres[0].yc = 0;
 	tabSpheres[0].zc = -2;
 	tabSpheres[0].r = 1;
-	tabSpheres[0].ka = 0.7;
-	tabSpheres[0].kd = 0.7;
+	tabSpheres[0].ka = { 0.7,0.7,0.7};
+	tabSpheres[0].kd = { 0.7,0.7,0.7};
+	nbSpheres++;
+
+	tabSpheres[1].xc = 0.2;
+	tabSpheres[1].yc = 0.3;
+	tabSpheres[1].zc = -1;
+	tabSpheres[1].r = 0.3;
+	tabSpheres[1].ka = { 0.7,0.7,0.7};
+	tabSpheres[1].kd = { 0.7,0.7,0.7};
 	nbSpheres++;
 
 	tabSources[0].Ia = {0.05,0.05,0.0};
@@ -132,7 +140,8 @@ bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
 				tmin = t;
 				pt = {start.x+dir.x*t,start.y+dir.y*t,start.z+dir.z*t};
 				Point center = {sphere->xc,sphere->yc,sphere->zc};
-				Vector normal = vectNormFromPoints(center,pt);
+				Vector normal;
+				normal.fromPoints(center,pt).normalize();
 				face.ka = sphere->ka;
 				face.kd = sphere->kd;
 				face.normal = normal;
@@ -154,7 +163,8 @@ bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
 					tmin = t;
 					pt = {start.x+dir.x*t,start.y+dir.y*t,start.z+dir.z*t};
 					Point center = {sphere->xc,sphere->yc,sphere->zc};
-					Vector normal = vectNormFromPoints(center,pt);
+					Vector normal;
+					normal.fromPoints(center,pt).normalize();
 					face.ka = sphere->ka;
 					face.kd = sphere->kd;
 					face.normal = normal;
@@ -185,14 +195,17 @@ void raytrace2(Point start, Vector dir, int nb, Intensity& it)
 		}else
 		{
 			Intensity temp;
-			temp = mult(source1->Ia,face.ka);	//ambient only with the first source
+			Vector Lj;
+			//ambient only with the first source
+			temp = source1->Ia * face.ka;
 			// diffuse with all the sources
 			for(int srcIter = 0; srcIter<nbSources; ++srcIter)
 			{
- 				Vector Lj = vectNormFromPoints(pointI,tabSources[srcIter].pos);
-				double fAtt = 1/dist(tabSources[srcIter].pos,pointI);
-				double coef = face.kd*prodScalPos(face.normal,Lj);
-				add(temp,mult(tabSources[srcIter].Ip,coef));
+				Lj.fromPoints(pointI,tabSources[srcIter].pos).normalize();
+				double d = dist(tabSources[srcIter].pos,pointI);
+				double fAtt = 1/(0.01*d*d+0.004*d+0.003);
+				if(fAtt>1) fAtt = 1;
+				temp +=  (tabSources[srcIter].Ip * fAtt * face.kd) * (face.normal * Lj);
 			}
 			it = temp;
 			if(it.r>1.0) it.r = 1.0;
@@ -243,7 +256,7 @@ void draw2(SDL_Surface *screen)
 			direction.y = top - i * stepV;
 			direction.z = -znear;
 
-			normalize(direction);
+			direction.normalize();
 			raytrace2(obs,direction,2,it);
 
 			uint8_t r = (uint8_t)(floor(it.r*255));
