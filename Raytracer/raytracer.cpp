@@ -1,6 +1,8 @@
 #include "raytracer.h"
 
 
+
+
 Intensity Intensity::operator*(double k)
 {
 	Intensity temp = *this;
@@ -11,6 +13,16 @@ Intensity Intensity::operator*(double k)
 	temp.b *= k;
 	if(temp.b>1) temp.b = 1.0;
 	return temp;
+}
+
+void Intensity::operator*=(double k)
+{
+	r *= k;
+	if(r>1) r=1;
+	g *= k;
+	if(g>1) g=1;
+	b *= k;
+	if(b>1) b=1;
 }
 
 Intensity Intensity::operator*(const Coef& k)
@@ -50,7 +62,7 @@ void Intensity::operator+=(const Intensity& it)
 double Vector::operator*(const Vector& v2)
 {
 	double res = this->x*v2.x + this->y*v2.y + this->z*v2.z;
-	return (res>0)?res:0;
+	return res;
 }
 
 Vector Vector::operator*(double k)

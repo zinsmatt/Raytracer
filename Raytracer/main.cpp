@@ -34,14 +34,14 @@ void init()
 	tabSpheres[0].r = 1;
 	tabSpheres[0].mat.ka = { 0.3,0.3,0.0};
 	tabSpheres[0].mat.kd = { 0.7,0.7,0.0};
-	tabSpheres[0].mat.ks = { 0.7,0.7, 0.7};
-	tabSpheres[0].mat.shininess = 38;
+	tabSpheres[0].mat.ks = { 1.0,1.0,1.0};
+	tabSpheres[0].mat.shininess = 78;
 	nbSpheres++;
 
-	tabSpheres[1].xc = -0.2;
+	tabSpheres[1].xc = -0.4;
 	tabSpheres[1].yc = 0.3;
-	tabSpheres[1].zc = -1;
-	tabSpheres[1].r = 0.3;
+	tabSpheres[1].zc = -0.8;
+	tabSpheres[1].r = 0.1;
 	tabSpheres[1].mat.ka = { 0.0,0.3,0.0};
 	tabSpheres[1].mat.kd = { 0.0,0.7,0.0};
 	tabSpheres[1].mat.ks = { 1.0,1.0,1.0};
@@ -60,7 +60,7 @@ void init()
 
 	tabSources[0].Ia = {0.1,0.1,0.1};
 	tabSources[0].Ip = {0.95,0.95,0.95};
-	tabSources[0].pos = {3,3,2};
+	tabSources[0].pos = {5,5,1};
 	nbSources++;
 
 	//tabSources[1].Ia = {0.1,0.1,0.1};
@@ -70,13 +70,15 @@ void init()
 }
 
 
-bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
+bool findNextIntersection(Point start, Vector dir, const Sphere* current_sphere, Point& pt, Face& face)
 {
 	bool intersection = false;
 	double tmin = HUGE_VALF;
 	for(int sphereIter = 0; sphereIter<nbSpheres; ++sphereIter)
 	{
 		Sphere *sphere = &tabSpheres[sphereIter];
+		if(sphere == current_sphere)
+			continue;
 		double A = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z;
 		double B = 2*(dir.x*(start.x-sphere->xc)+dir.y*(start.y-sphere->yc)+dir.z*(start.z-sphere->zc));
 		double C = (start.x-sphere->xc)*(start.x-sphere->xc)+
@@ -163,7 +165,7 @@ bool ombre(const Point& start,const Vector& dir,const Face& face, const Source& 
 
 
 
-void raytrace2(Point start, Vector dir, int nb, Intensity& it)
+void raytrace2(Point start, Vector dir, const Sphere* current_sphere, int nb, Intensity& it)
 {
 	if(nb == 0)
 	{
@@ -172,36 +174,72 @@ void raytrace2(Point start, Vector dir, int nb, Intensity& it)
 	{
 		Point pointI;
 		Face face;
-		if(!findNextIntersection(start,dir,pointI,face))
+		if(!findNextIntersection(start,dir,current_sphere,pointI,face))
 		{
 			it = {0,0,0};
 		}else
 		{
 
+			Intensity temp, Is, It;
+			Vector Lj, vision,  reflected;
+			vision.fromPoints(pointI,obs).normalize();
 
-			Intensity temp;
-			Vector Lj, reflected;
+			if(face.sphere->mat.ks.r == 0 && face.sphere->mat.ks.g == 0 && face.sphere->mat.ks.b == 0)
+			{
+				Is = {0, 0, 0};
+			}else
+			{
+				if(face.normal*Lj>0)
+				{
+					// compute reflected ray
+					reflected = (face.normal * 2 *(face.normal * Lj)) - Lj;
+					//reflected.normalize();
+					raytrace2(pointI,reflected,face.sphere,nb-1,Is);
+				}
+			}
+
+			if(face.sphere->mat.kt.r == 0 && face.sphere->mat.kt.g == 0 && face.sphere->mat.kt.b == 0 )
+			{
+				It = {0,0,0};
+			}else
+			{
+				// compute transmitted ray
+
+
+
+			}
+
 			//ambient only with the first source
 			temp = source1->Ia * face.sphere->mat.ka;
 			// diffuse with all the sources
-			Vector vision;
-			vision.fromPoints(pointI,obs).normalize();
 			for(int srcIter = 0; srcIter<nbSources; ++srcIter)
 			{
 				Lj.fromPoints(pointI,tabSources[srcIter].pos).normalize();
-				if(ombre(pointI,Lj,face,tabSources[srcIter]))
-					continue;
-				double d = dist(tabSources[srcIter].pos,pointI);
-				double fAtt = 1/(0.01*d*d+0.04*d+0.03);
-				if(fAtt>1) fAtt = 1;
-				temp +=  (tabSources[srcIter].Ip * fAtt * face.sphere->mat.kd) * (face.normal * Lj);
-				if(face.normal * Lj >0)
+				if(face.normal * Lj >0)	//eclaire les faces bien orientees par rapport a la source
 				{
-					reflected = (face.normal * 2 *(face.normal * Lj)) - Lj;
-					temp += (tabSources[srcIter].Ip * fAtt * face.sphere->mat.ks) * pow(reflected*vision,(double)face.sphere->mat.shininess);
+					if(ombre(pointI,Lj,face,tabSources[srcIter]))
+						continue;
+
+					double d = dist(tabSources[srcIter].pos,pointI);
+					double fAtt = 1/(0.01*d*d+0.04*d+0.03);
+					if(fAtt>1) fAtt = 1;
+
+					// diffuse
+					temp +=  (tabSources[srcIter].Ip * fAtt * face.sphere->mat.kd) * vmax((face.normal * Lj),0);
+
+					// specular
+					if(face.sphere->mat.ks.r != 0 || face.sphere->mat.ks.g != 0 || face.sphere->mat.ks.b != 0)
+					temp += (tabSources[srcIter].Ip * fAtt * face.sphere->mat.ks) * pow(vmax(reflected*vision,0), (double)face.sphere->mat.shininess);
 				}
 			}
 			it = temp;
+			it += Is * face.sphere->mat.ks;
+
+			if(start != obs)
+			{
+				double d = dist(start,pointI);
+				it *= (1/(1+d));
+			}
 		}
 	}
 }
@@ -247,7 +285,7 @@ void draw2(SDL_Surface *screen)
 			{
 				direction = {left + j * stepH, top - i * stepV, -znear};
 				direction.normalize();
-				raytrace2(obs,direction,2,it);
+				raytrace2(obs,direction,NULL,2,it);
 
 				setPixel(screen,i,j,floor(it.r*255), floor(it.g*255),floor(it.b*255));
 			}else
@@ -255,23 +293,23 @@ void draw2(SDL_Surface *screen)
 				double rm=0,gm=0,bm=0;
 				double offset = 0.002;
 				direction = {left + j * stepH, top - i * stepV, -znear};
-				raytrace2(obs,direction,2,it);
+				raytrace2(obs,direction,NULL,2,it);
 				rm += it.r; gm +=it.g; bm += it.b;
 
 				direction = {left + j * stepH -offset, top - i * stepV, -znear};
-				raytrace2(obs,direction,2,it);
+				raytrace2(obs,direction,NULL,2,it);
 				rm += it.r; gm +=it.g; bm += it.b;
 
 				direction = {left + j * stepH + offset, top - i * stepV, -znear};
-				raytrace2(obs,direction,2,it);
+				raytrace2(obs,direction,NULL,2,it);
 				rm += it.r; gm +=it.g; bm += it.b;
 
 				direction = {left + j * stepH, top - i * stepV - offset, -znear};
-				raytrace2(obs,direction,2,it);
+				raytrace2(obs,direction,NULL,2,it);
 				rm += it.r; gm +=it.g; bm += it.b;
 
 				direction = {left + j * stepH, top - i * stepV + offset, -znear};
-				raytrace2(obs,direction,2,it);
+				raytrace2(obs,direction,NULL,2,it);
 				rm += it.r; gm +=it.g; bm += it.b;
 
 				rm /= 5; gm /= 5; bm /= 5;

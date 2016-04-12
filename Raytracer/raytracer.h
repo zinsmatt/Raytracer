@@ -13,6 +13,7 @@ struct Material{
 	Coef ka;
 	Coef kd;
 	Coef ks;
+	Coef kt;
 	unsigned int shininess;
 };
 
@@ -22,6 +23,7 @@ struct Intensity{
 	double b;
 
 	Intensity operator*(double k);
+	void operator*=(double k);
 	Intensity operator*(const Coef& k);
 	Intensity operator+(const Intensity& it);
 	void operator+=(const Intensity& it);
@@ -31,6 +33,9 @@ struct Point{
 	double x;
 	double y;
 	double z;
+
+	bool operator==(const Point& pt2) { return (x==pt2.x) && (y==pt2.y) && (z==pt2.z); }
+	bool operator!=(const Point& pt2) { return !(*this==pt2); }
 };
 
 struct Vector{
@@ -82,6 +87,9 @@ inline double power(double x, int n)
 	return res;
 }
 
-
+inline double vmax(double a, double b)
+{
+	return (a<b)?b:a;
+}
 #endif // RAYTRACER_H
 

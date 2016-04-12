@@ -6,12 +6,14 @@ Raytracer
 ![alt tag](phong.png?raw=true "Raytracer - Phong model")
 
 
-####Phong with anti-aliasing
+####with anti-aliasing
 ![alt tag](phong_antialiasing.png?raw=true "Raytracer - Phong model")
 
 
-####Phong with projected shadows
+####with projected shadows
 ![alt tag](projected_shadow.png?raw=true "Raytracer - Phong model")
 
 
+####with reflection
+![alt tag](reflection.png?raw=true "Raytracer - Phong model")
 
