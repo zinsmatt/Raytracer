@@ -30,21 +30,35 @@ void init()
 	tabSpheres[0].yc = 0;
 	tabSpheres[0].zc = -2;
 	tabSpheres[0].r = 1;
-	tabSpheres[0].ka = { 0.7,0.7,0.7};
-	tabSpheres[0].kd = { 0.7,0.7,0.7};
+	tabSpheres[0].mat.ka = { 0.3,0.3,0.0};
+	tabSpheres[0].mat.kd = { 0.7,0.7,0.0};
+	tabSpheres[0].mat.ks = { 0.7,0.7, 0.7};
+	tabSpheres[0].mat.shininess = 38;
 	nbSpheres++;
 
-	tabSpheres[1].xc = 0.2;
+	tabSpheres[1].xc = -0.2;
 	tabSpheres[1].yc = 0.3;
 	tabSpheres[1].zc = -1;
 	tabSpheres[1].r = 0.3;
-	tabSpheres[1].ka = { 0.7,0.7,0.7};
-	tabSpheres[1].kd = { 0.7,0.7,0.7};
+	tabSpheres[1].mat.ka = { 0.0,0.3,0.0};
+	tabSpheres[1].mat.kd = { 0.0,0.7,0.0};
+	tabSpheres[1].mat.ks = { 1.0,1.0,1.0};
+	tabSpheres[1].mat.shininess = 52;
 	nbSpheres++;
 
-	tabSources[0].Ia = {0.05,0.05,0.0};
-	tabSources[0].Ip = {0.95,0.95,0};
-	tabSources[0].pos = {5,5,5};
+	tabSpheres[2].xc = 0.4;
+	tabSpheres[2].yc = 0.3;
+	tabSpheres[2].zc = -1.1;
+	tabSpheres[2].r = 0.05;
+	tabSpheres[2].mat.ka = { 0.0,0.0,0.4};
+	tabSpheres[2].mat.kd = { 0.0,0.0,0.7};
+	tabSpheres[2].mat.ks = { 1.0,1.0,1.0};
+	tabSpheres[2].mat.shininess = 128;
+	nbSpheres++;
+
+	tabSources[0].Ia = {0.1,0.1,0.1};
+	tabSources[0].Ip = {0.95,0.95,0.95};
+	tabSources[0].pos = {3,3,2};
 	nbSources++;
 }
 
@@ -142,8 +156,7 @@ bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
 				Point center = {sphere->xc,sphere->yc,sphere->zc};
 				Vector normal;
 				normal.fromPoints(center,pt).normalize();
-				face.ka = sphere->ka;
-				face.kd = sphere->kd;
+				face.mat = sphere->mat;
 				face.normal = normal;
 			}
 		}else if(delta>0)
@@ -165,8 +178,7 @@ bool findNextIntersection(Point start, Vector dir, Point& pt, Face& face)
 					Point center = {sphere->xc,sphere->yc,sphere->zc};
 					Vector normal;
 					normal.fromPoints(center,pt).normalize();
-					face.ka = sphere->ka;
-					face.kd = sphere->kd;
+					face.mat = sphere->mat;
 					face.normal = normal;
 				}
 			}
@@ -195,17 +207,24 @@ void raytrace2(Point start, Vector dir, int nb, Intensity& it)
 		}else
 		{
 			Intensity temp;
-			Vector Lj;
+			Vector Lj, reflected;
 			//ambient only with the first source
-			temp = source1->Ia * face.ka;
+			temp = source1->Ia * face.mat.ka;
 			// diffuse with all the sources
+			Vector vision;
+			vision.fromPoints(pointI,obs).normalize();
 			for(int srcIter = 0; srcIter<nbSources; ++srcIter)
 			{
 				Lj.fromPoints(pointI,tabSources[srcIter].pos).normalize();
 				double d = dist(tabSources[srcIter].pos,pointI);
 				double fAtt = 1/(0.01*d*d+0.004*d+0.003);
 				if(fAtt>1) fAtt = 1;
-				temp +=  (tabSources[srcIter].Ip * fAtt * face.kd) * (face.normal * Lj);
+				temp +=  (tabSources[srcIter].Ip * fAtt * face.mat.kd) * (face.normal * Lj);
+				if(face.normal * Lj >0)
+				{
+					reflected = (face.normal * 2 *(face.normal * Lj)) - Lj;
+					temp += (tabSources[srcIter].Ip * fAtt * face.mat.ks) * pow(reflected*vision,(double)face.mat.shininess);
+				}
 			}
 			it = temp;
 			if(it.r>1.0) it.r = 1.0;
@@ -233,8 +252,8 @@ void setPixel(SDL_Surface *screen, int i, int j, uint8_t r, uint8_t g, uint8_t b
 
 void draw2(SDL_Surface *screen)
 {
+	SDL_LockSurface(screen);
 	char *p = (char*)screen->pixels;
-
 
 	double fovy = 90;
 	double ratio = (double)HEIGHT/WIDTH;
@@ -265,6 +284,7 @@ void draw2(SDL_Surface *screen)
 			setPixel(screen,i,j,r,g,b);
 		}
 	}
+	SDL_UnlockSurface(screen);
 }
 
 

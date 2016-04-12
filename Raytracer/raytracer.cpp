@@ -53,6 +53,24 @@ double Vector::operator*(const Vector& v2)
 	return (res>0)?res:0;
 }
 
+Vector Vector::operator*(double k)
+{
+	Vector temp = *this;
+	temp.x *= k;
+	temp.y *= k;
+	temp.z *= k;
+	return temp;
+}
+
+Vector Vector::operator-(const Vector& v2)
+{
+	Vector temp;
+	temp.x = x - v2.x;
+	temp.y = y - v2.y;
+	temp.z = z - v2.z;
+	return temp;
+}
+
 void Vector::normalize()
 {
 	double n = sqrt(x*x+y*y+z*z);
