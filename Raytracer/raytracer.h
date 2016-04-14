@@ -14,6 +14,7 @@ struct Material{
 	Coef kd;
 	Coef ks;
 	Coef kt;
+	double ro;
 	unsigned int shininess;
 };
 

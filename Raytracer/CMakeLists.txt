@@ -11,4 +11,4 @@ add_executable(${PROJECT_NAME} ${SRC_LIST} ${HEADER})
 
 target_link_libraries(${PROJECT_NAME} SDL ${SDL_LIBRARIES})
 
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++11 -O0")
